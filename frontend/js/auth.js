@@ -1,4 +1,7 @@
 
+const form = document.querySelector("form[data-mode]");
+const feedback = document.getElementById("feedback");
+
 async function sendAuthRequest(path, username, password) {
     const response = await fetch(path, {
         method: "POST",
@@ -7,10 +10,7 @@ async function sendAuthRequest(path, username, password) {
             "X-Requested-With": "XMLHttpRequest"
         },
         credentials: "same-origin",
-        body: JSON.stringify({
-            username: username,
-            password: password
-        })
+        body: JSON.stringify({ username, password })
     });
 
     const data = await response.json();
@@ -26,82 +26,60 @@ async function sendAuthRequest(path, username, password) {
     return data;
 }
 
-
-// ========== Registration ==========
-
-document.getElementById("registerForm")
-    .addEventListener("submit", async (event) => {
-
+if (form) {
+    form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
-        const username = document.getElementById(
-            "registerUsername"
-        ).value;
+        const mode = form.dataset.mode;
+        const username =
+            document.getElementById("username").value.trim();
+        const password =
+            document.getElementById("password").value;
 
-        const password = document.getElementById(
-            "registerPassword"
-        ).value;
+        const submitButton =
+            form.querySelector('button[type="submit"]');
 
-        const message = document.getElementById(
-            "registerMessage"
-        );
-
-        try {
-            const data = await sendAuthRequest(
-                "/api/auth/register",
-                username,
-                password
-            );
-
-            message.textContent = data.message;
-            message.style.color = "#4ade80";
-
-            document.getElementById(
-                "registerForm"
-            ).reset();
-
-            document.getElementById(
-                "loginUsername"
-            ).value = username;
-
-        } catch (error) {
-            message.textContent = error.message;
-            message.style.color = "#f87171";
-        }
-    });
-
-
-// ========== Login ==========
-
-document.getElementById("loginForm")
-    .addEventListener("submit", async (event) => {
-
-        event.preventDefault();
-
-        const username = document.getElementById(
-            "loginUsername"
-        ).value;
-
-        const password = document.getElementById(
-            "loginPassword"
-        ).value;
-
-        const message = document.getElementById(
-            "loginMessage"
-        );
+        feedback.textContent = "";
+        submitButton.disabled = true;
 
         try {
-            await sendAuthRequest(
-                "/api/auth/login",
-                username,
-                password
-            );
+            if (mode === "register") {
+                const confirmPassword =
+                    document.getElementById(
+                        "confirmPassword"
+                    ).value;
 
-            // Login successful: return to homepage.
-            window.location.href = "/";
+                if (password !== confirmPassword) {
+                    throw new Error(
+                        "Passwords do not match."
+                    );
+                }
+
+                await sendAuthRequest(
+                    "/api/auth/register",
+                    username,
+                    password
+                );
+
+                // Registration succeeded.
+                // Return home without automatically logging in.
+                window.location.replace("/?registered=1");
+
+            } else if (mode === "login") {
+                await sendAuthRequest(
+                    "/api/auth/login",
+                    username,
+                    password
+                );
+
+                // Login succeeded.
+                window.location.replace("/");
+            }
 
         } catch (error) {
-            message.textContent = error.message;
-            message.style.color = "#f87171";
+            feedback.textContent = error.message;
+            feedback.classList.add("error");
+            submitButton.disabled = false;
         }
     });
+}

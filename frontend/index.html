@@ -1,45 +1,99 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
-
     <title>Capstone Live</title>
-
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2">
 </head>
-
 <body>
-    <header>
-        <h2>Capstone Live</h2>
 
-        <nav>
-            <a href="/">Home</a>
-            <button id="loginBtn">Login</button>
-            <button id="registerBtn">Register</button>
-        </nav>
-    </header>
+<header class="site-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">●</span>
+        Capstone Live
+    </a>
 
-    <main>
-        <h1>Interactive Live Streaming Platform</h1>
+    <nav class="header-right">
+        <a class="nav-link" href="/">Home</a>
+
+        <div id="accountArea" class="account-area">
+            <a class="nav-link" href="/login">
+                Login
+            </a>
+
+            <a class="btn btn-small" href="/register">
+                Register
+            </a>
+        </div>
+    </nav>
+</header>
+
+<main class="home-main">
+
+    <section class="hero">
+        <span class="eyebrow">
+            INTERACTIVE LIVE STREAMING
+        </span>
+
+        <h1>
+            Stream. Connect.<br>
+            <span class="gradient-text">Experience Live.</span>
+        </h1>
 
         <p>
-            Watch live streams, chat with creators,
-            and interact with virtual gifts.
+            Watch live streams, connect with creators,
+            chat in real time, and share unforgettable moments.
         </p>
 
-        <button id="startStreamBtn">
-            Start Streaming
-        </button>
+        <div class="hero-actions">
+            <button id="startStreamBtn"
+                    class="btn btn-primary">
+                Start Streaming
+            </button>
 
-        <h3>Backend Connection</h3>
-        <p id="serverStatus">Checking server...</p>
-        <h3>Account Status</h3>
-        <p id="authStatus">Checking login status...</p>
-    </main>
+            <a class="btn btn-outline" href="#features">
+                Explore Features
+            </a>
+        </div>
 
-    <script src="/static/js/main.js"></script>
+        <p id="flashMessage"
+           class="notice"
+           role="status"
+           hidden></p>
+    </section>
+
+    <section class="features" id="features">
+
+        <h2>Platform Features</h2>
+
+        <div class="feature-grid">
+            <article class="feature-card">
+                <h3>Live Streaming</h3>
+                <p>Broadcast and watch live video.</p>
+            </article>
+
+            <article class="feature-card">
+                <h3>Live Chat</h3>
+                <p>Chat with your community in real time.</p>
+            </article>
+
+            <article class="feature-card">
+                <h3>Virtual Gifts</h3>
+                <p>Support streamers with interactive gifts.</p>
+            </article>
+        </div>
+
+    </section>
+
+</main>
+
+<footer class="site-footer">
+    <span>Capstone Live · University Project</span>
+    <span id="serverStatus">Checking server...</span>
+</footer>
+
+<script src="/static/js/main.js"></script>
 </body>
 </html>

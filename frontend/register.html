@@ -1,0 +1,97 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <title>Register | Capstone Live</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=2">
+</head>
+<body>
+
+<header class="site-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">●</span>
+        Capstone Live
+    </a>
+    <a href="/" class="nav-link">Home</a>
+</header>
+
+<main class="auth-layout">
+
+    <section class="auth-info">
+        <span class="eyebrow">JOIN THE COMMUNITY</span>
+        <h1>Start your<br>streaming journey.</h1>
+        <p>
+            Create your account to watch live streams,
+            chat with others, and become a creator.
+        </p>
+        <div class="auth-decoration">
+            <span class="live-dot"></span>
+            Your community starts here
+        </div>
+    </section>
+
+    <section class="auth-card">
+        <h2>Create account</h2>
+        <p class="auth-subtitle">
+            Join Capstone Live for free.
+        </p>
+
+        <form id="registerForm" data-mode="register">
+
+            <label for="username">Username</label>
+            <input
+                id="username"
+                type="text"
+                minlength="3"
+                maxlength="24"
+                pattern="[A-Za-z0-9_]{3,24}"
+                autocomplete="username"
+                placeholder="3-24 letters, numbers or _"
+                required
+            >
+
+            <label for="password">Password</label>
+            <input
+                id="password"
+                type="password"
+                minlength="8"
+                maxlength="128"
+                autocomplete="new-password"
+                placeholder="At least 8 characters"
+                required
+            >
+
+            <label for="confirmPassword">
+                Confirm password
+            </label>
+            <input
+                id="confirmPassword"
+                type="password"
+                autocomplete="new-password"
+                placeholder="Enter your password again"
+                required
+            >
+
+            <p id="feedback" class="form-feedback"
+               role="status" aria-live="polite"></p>
+
+            <button type="submit"
+                    class="btn btn-primary auth-submit">
+                Create Account
+            </button>
+        </form>
+
+        <p class="auth-switch">
+            Already have an account?
+            <a href="/login">Login instead</a>
+        </p>
+    </section>
+
+</main>
+
+<script src="/static/js/auth.js"></script>
+</body>
+</html>

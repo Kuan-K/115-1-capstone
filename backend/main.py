@@ -10,6 +10,7 @@ import time
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from pwdlib import PasswordHash
 
@@ -145,9 +146,22 @@ def home():
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
+
+
+@app.get("/login")
+def login_page():
+    return FileResponse(FRONTEND_DIR / "login.html")
+
+
+@app.get("/register")
+def register_page():
+    return FileResponse(FRONTEND_DIR / "register.html")
+
+
+# Redirect the old /auth route to /login
 @app.get("/auth")
 def auth_page():
-    return FileResponse(FRONTEND_DIR / "auth.html")
+    return RedirectResponse(url="/login", status_code=302)
 
 
 @app.get("/api/status")

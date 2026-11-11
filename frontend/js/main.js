@@ -1,72 +1,82 @@
+
 let currentUser = null;
 
-const loginBtn = document.getElementById("loginBtn");
-const registerBtn = document.getElementById("registerBtn");
+const accountArea = document.getElementById("accountArea");
 const startStreamBtn = document.getElementById("startStreamBtn");
 
-
-// ========== Check backend ==========
-
-async function checkBackend() {
-    const status = document.getElementById("serverStatus");
-
-    try {
-        const response = await fetch("/api/status");
-
-        if (!response.ok) {
-            throw new Error("Backend unavailable");
-        }
-
-        const data = await response.json();
-
-        status.textContent = data.message;
-
-    } catch (error) {
-        status.textContent = "Cannot connect to backend";
-        status.style.color = "#f87171";
-    }
+// Create an anchor element
+function createLink(text, href, className) {
+    const link = document.createElement("a");
+    link.textContent = text;
+    link.href = href;
+    link.className = className;
+    return link;
 }
 
+// ========== Guest Header ==========
 
-// ========== Check current user ==========
+function showGuestHeader() {
+    const loginLink = createLink(
+        "Login", "/login", "nav-link"
+    );
+
+    const registerLink = createLink(
+        "Register", "/register", "btn btn-small"
+    );
+
+    accountArea.replaceChildren(loginLink, registerLink);
+}
+
+// ========== Logged-in Header ==========
+
+function showUserHeader(user) {
+    const profile = document.createElement("div");
+    profile.className = "user-profile";
+
+    // Default circular avatar
+    const avatar = document.createElement("span");
+    avatar.className = "avatar";
+    avatar.setAttribute("aria-hidden", "true");
+
+    // Username returned by FastAPI
+    const username = document.createElement("span");
+    username.className = "username";
+    username.textContent = user.username;
+
+    profile.append(avatar, username);
+
+    const logoutBtn = document.createElement("button");
+    logoutBtn.className = "btn btn-outline btn-small";
+    logoutBtn.textContent = "Logout";
+    logoutBtn.addEventListener("click", logout);
+
+    accountArea.replaceChildren(profile, logoutBtn);
+}
+
+// ========== Check Login ==========
 
 async function checkLogin() {
-    const status = document.getElementById("authStatus");
-
     try {
-        const response = await fetch("/api/auth/me");
+        const response = await fetch("/api/auth/me", {
+            credentials: "same-origin",
+            cache: "no-store"
+        });
 
         if (!response.ok) {
             currentUser = null;
-            throw new Error("Not logged in");
+            showGuestHeader();
+            return;
         }
 
         currentUser = await response.json();
-
-        status.textContent =
-            "Logged in as: " + currentUser.username;
-
-        loginBtn.textContent = "Logout";
-        registerBtn.hidden = true;
-
-        loginBtn.onclick = logout;
+        showUserHeader(currentUser);
 
     } catch (error) {
-        status.textContent = "You are not logged in.";
-
-        loginBtn.textContent = "Login";
-        registerBtn.hidden = false;
-
-        loginBtn.onclick = () => {
-            window.location.href = "/auth";
-        };
-
-        registerBtn.onclick = () => {
-            window.location.href = "/auth";
-        };
+        console.error("Login status error:", error);
+        currentUser = null;
+        showGuestHeader();
     }
 }
-
 
 // ========== Logout ==========
 
@@ -85,25 +95,55 @@ async function logout() {
         }
 
         currentUser = null;
-        await checkLogin();
+        showGuestHeader();
 
     } catch (error) {
-        alert("Logout failed. Please try again.");
+        alert("Unable to logout. Please try again.");
     }
 }
 
+// ========== Backend Status ==========
 
-// ========== Start streaming ==========
+async function checkBackend() {
+    const status = document.getElementById("serverStatus");
 
-startStreamBtn.onclick = () => {
+    try {
+        const response = await fetch("/api/status");
+
+        if (!response.ok) {
+            throw new Error("Server unavailable");
+        }
+
+        status.textContent = "Server Online";
+
+    } catch (error) {
+        status.textContent = "Server Offline";
+    }
+}
+
+// ========== Registration Success ==========
+
+const params = new URLSearchParams(window.location.search);
+
+if (params.get("registered") === "1") {
+    const message = document.getElementById("flashMessage");
+    message.textContent =
+        "Account created successfully! Please login.";
+    message.hidden = false;
+
+    window.history.replaceState(null, "", "/");
+}
+
+// ========== Streaming Entry ==========
+
+startStreamBtn.addEventListener("click", () => {
     if (!currentUser) {
-        window.location.href = "/auth";
+        window.location.href = "/login";
         return;
     }
 
-    alert("Streaming feature will be implemented next.");
-};
-
+    alert("Streaming feature is coming next.");
+});
 
 // ========== Initialize ==========
 
