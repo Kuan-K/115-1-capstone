@@ -62,3 +62,58 @@ main p {
 #serverStatus {
     color: #4ade80;
 }
+
+
+
+/* Authentication forms */
+
+.auth-layout {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 30px;
+    padding: 60px 20px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 380px;
+    padding: 30px;
+    background: #1e1f30;
+    border-radius: 12px;
+    text-align: left;
+}
+
+.auth-card h2 {
+    color: #a78bfa;
+}
+
+.auth-card form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-card label {
+    margin-top: 8px;
+}
+
+.auth-card input {
+    width: 100%;
+    padding: 12px;
+    background: #11121c;
+    border: 1px solid #45455a;
+    border-radius: 6px;
+    color: white;
+    font-size: 16px;
+}
+
+.auth-card button {
+    margin-top: 16px;
+}
+
+.feedback {
+    min-height: 24px;
+    font-size: 14px;
+}
