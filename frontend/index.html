@@ -43,8 +43,8 @@
         </h1>
 
         <p>
-            Watch live streams, connect with creators,
-            chat in real time, and share unforgettable moments.
+            Watch live streams and connect with creators
+            in real time.
         </p>
 
         <div class="hero-actions">
@@ -62,6 +62,40 @@
            class="notice"
            role="status"
            hidden></p>
+
+        <form id="createRoomForm" class="room-form" hidden>
+            <label for="roomTitle">Stream title</label>
+            <div class="room-form-row">
+                <input id="roomTitle"
+                       name="title"
+                       type="text"
+                       maxlength="100"
+                       placeholder="What are you streaming?"
+                       required>
+                <button id="createRoomSubmit"
+                        class="btn btn-primary"
+                        type="submit">
+                    Create Room
+                </button>
+            </div>
+            <p id="roomFeedback"
+               class="form-feedback"
+               role="status"
+               aria-live="polite"></p>
+        </form>
+    </section>
+
+    <section class="live-rooms" id="liveRooms" hidden>
+        <div class="section-heading">
+            <h2>Live Now</h2>
+            <button id="refreshRoomsBtn"
+                    class="btn btn-outline btn-small"
+                    type="button">
+                Refresh
+            </button>
+        </div>
+        <p id="roomsMessage" class="rooms-message"></p>
+        <div id="roomList" class="room-list"></div>
     </section>
 
     <section class="features" id="features">

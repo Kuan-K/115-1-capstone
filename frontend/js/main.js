@@ -3,6 +3,13 @@ let currentUser = null;
 
 const accountArea = document.getElementById("accountArea");
 const startStreamBtn = document.getElementById("startStreamBtn");
+const createRoomForm = document.getElementById("createRoomForm");
+const roomTitle = document.getElementById("roomTitle");
+const roomFeedback = document.getElementById("roomFeedback");
+const roomList = document.getElementById("roomList");
+const roomsMessage = document.getElementById("roomsMessage");
+const liveRooms = document.getElementById("liveRooms");
+const refreshRoomsBtn = document.getElementById("refreshRoomsBtn");
 
 // Create an anchor element
 function createLink(text, href, className) {
@@ -70,11 +77,65 @@ async function checkLogin() {
 
         currentUser = await response.json();
         showUserHeader(currentUser);
+        liveRooms.hidden = false;
+        await loadLiveRooms();
 
     } catch (error) {
         console.error("Login status error:", error);
         currentUser = null;
         showGuestHeader();
+        liveRooms.hidden = true;
+    }
+}
+
+async function requestJson(path, options = {}) {
+    const response = await fetch(path, {
+        credentials: "same-origin",
+        ...options
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            typeof data.detail === "string"
+                ? data.detail
+                : "Request failed"
+        );
+    }
+
+    return data;
+}
+
+async function loadLiveRooms() {
+    roomsMessage.textContent = "Loading live streams...";
+    roomList.replaceChildren();
+
+    try {
+        const rooms = await requestJson("/api/rooms");
+        roomsMessage.textContent = rooms.length
+            ? ""
+            : "No live streams right now.";
+
+        for (const room of rooms) {
+            const card = document.createElement("article");
+            card.className = "room-card";
+
+            const title = document.createElement("h3");
+            title.textContent = room.title;
+
+            const host = document.createElement("p");
+            host.textContent = `Streaming by ${room.host_username}`;
+
+            const watchButton = document.createElement("a");
+            watchButton.className = "btn btn-primary btn-small";
+            watchButton.href = `/stream/${room.id}`;
+            watchButton.textContent = "Watch";
+
+            card.append(title, host, watchButton);
+            roomList.append(card);
+        }
+    } catch (error) {
+        roomsMessage.textContent = error.message;
     }
 }
 
@@ -134,18 +195,46 @@ if (params.get("registered") === "1") {
     window.history.replaceState(null, "", "/");
 }
 
-// ========== Streaming Entry ==========
+// ========== Stream room creation ==========
 
-startStreamBtn.addEventListener("click", () => {
+startStreamBtn.addEventListener("click", async () => {
+    await loginCheck;
     if (!currentUser) {
         window.location.href = "/login";
         return;
     }
 
-    alert("Streaming feature is coming next.");
+    createRoomForm.hidden = false;
+    roomTitle.focus();
+});
+
+createRoomForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const submitButton = document.getElementById("createRoomSubmit");
+    submitButton.disabled = true;
+    roomFeedback.textContent = "";
+    roomFeedback.classList.remove("error");
+
+    try {
+        const room = await requestJson("/api/rooms", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: JSON.stringify({ title: roomTitle.value })
+        });
+        window.location.href = `/stream/${room.id}`;
+    } catch (error) {
+        roomFeedback.textContent = error.message;
+        roomFeedback.classList.add("error");
+        submitButton.disabled = false;
+    }
 });
 
 // ========== Initialize ==========
 
+refreshRoomsBtn.addEventListener("click", loadLiveRooms);
 checkBackend();
-checkLogin();
+const loginCheck = checkLogin();

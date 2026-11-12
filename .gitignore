@@ -8,6 +8,7 @@ __pycache__/
 # Secret configuration
 .env
 .env.*
+!.env.example
 
 # Local database
 *.db
