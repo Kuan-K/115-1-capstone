@@ -58,6 +58,17 @@ function removeTrack(track) {
     }
 }
 
+function removeTrackElements(participant, source) {
+    const participantSelector = CSS.escape(participant.identity);
+    const sourceSelector = CSS.escape(String(source));
+    const selector =
+        `[data-participant="${participantSelector}"][data-source="${sourceSelector}"]`;
+
+    videoStage.querySelectorAll(selector).forEach((element) => {
+        element.remove();
+    });
+}
+
 function attachTrack(track, participant, isLocal = false) {
     const source = track.source;
     const participantSelector = CSS.escape(participant.identity);
@@ -73,21 +84,9 @@ function attachTrack(track, participant, isLocal = false) {
     element.playsInline = true;
     element.dataset.participant = participant.identity;
     element.dataset.source = source;
-    if (isLocal && element instanceof HTMLVideoElement) {
-        element.muted = true;
-    }
+    element.muted = isLocal;
     videoPlaceholder.hidden = true;
     videoStage.append(element);
-}
-
-function hasPublishedVideo() {
-    return [
-        LivekitClient.Track.Source.Camera,
-        LivekitClient.Track.Source.ScreenShare
-    ].some((source) => {
-        const publication = room.localParticipant.getTrackPublication(source);
-        return Boolean(publication?.track);
-    });
 }
 
 async function markRoomLive() {
@@ -105,18 +104,6 @@ async function markRoomLive() {
     endStreamBtn.hidden = false;
     setStatus("Live", "live");
     showMessage("You are live. Share this room with your viewers.");
-}
-
-async function endRoomIfNoVideo() {
-    if (
-        roomDetails?.role === "host" &&
-        roomIsLive &&
-        roomConnected &&
-        !endingRoom &&
-        !hasPublishedVideo()
-    ) {
-        await endStream("Video sharing stopped. The stream has ended.");
-    }
 }
 
 function updateVideoPlaceholder() {
@@ -142,19 +129,24 @@ function setupRoomEvents() {
                 removeTrack(publication.track);
             }
             updateVideoPlaceholder();
+        })
+        .on(LivekitClient.RoomEvent.LocalTrackUnpublished, (publication, participant) => {
+            if (publication.track) {
+                removeTrack(publication.track);
+            }
+            removeTrackElements(participant, publication.source);
+            updateVideoPlaceholder();
 
-            if (participant === room.localParticipant) {
-                if (publication.source === LivekitClient.Track.Source.ScreenShare) {
-                    screenShareEnabled = false;
-                    screenShareBtn.textContent = "Share screen";
-                }
-                if (publication.source === LivekitClient.Track.Source.Camera) {
-                    cameraEnabled = false;
-                    cameraBtn.textContent = "Turn camera on";
-                }
-                endRoomIfNoVideo().catch((error) => {
-                    showMessage(error.message, true);
-                });
+            if (publication.source === LivekitClient.Track.Source.ScreenShare) {
+                screenShareEnabled = false;
+                screenShareBtn.textContent = "Share screen";
+                showMessage(
+                    "Screen sharing stopped. The live room is still open; you can share again."
+                );
+            }
+            if (publication.source === LivekitClient.Track.Source.Camera) {
+                cameraEnabled = false;
+                cameraBtn.textContent = "Turn camera on";
             }
         })
         .on(LivekitClient.RoomEvent.Disconnected, () => {
@@ -264,14 +256,21 @@ async function toggleScreenShare() {
             await room.localParticipant.setScreenShareEnabled(false);
             screenShareEnabled = false;
             screenShareBtn.textContent = "Share screen";
-            await endRoomIfNoVideo();
+            showMessage(
+                "Screen sharing stopped. The live room is still open; you can share again."
+            );
             return;
         }
 
-        await room.localParticipant.setScreenShareEnabled(true);
+        await room.localParticipant.setScreenShareEnabled(true, {
+            audio: true
+        });
         screenShareEnabled = true;
         screenShareBtn.textContent = "Stop sharing";
         await markRoomLive();
+        showMessage(
+            "For shared audio, choose a browser tab and enable its audio-sharing option."
+        );
     } catch (error) {
         screenShareEnabled = Boolean(
             room.localParticipant.getTrackPublication(
@@ -298,7 +297,6 @@ async function toggleCamera() {
             await room.localParticipant.setCameraEnabled(false);
             cameraEnabled = false;
             cameraBtn.textContent = "Turn camera on";
-            await endRoomIfNoVideo();
         } else {
             await room.localParticipant.setCameraEnabled(true);
             cameraEnabled = true;

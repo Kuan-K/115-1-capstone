@@ -249,7 +249,11 @@ class StreamRoomApiTests(unittest.TestCase):
         self.assertIn("Share screen", page.text)
         self.assertEqual(script.status_code, 200)
         self.assertIn("connectToRoom", script.text)
-        self.assertIn("setScreenShareEnabled(true)", script.text)
+        self.assertIn("setScreenShareEnabled(true, {", script.text)
+        self.assertIn("audio: true", script.text)
+        self.assertIn("LocalTrackUnpublished", script.text)
+        self.assertIn("element.muted = isLocal", script.text)
+        self.assertNotIn("endRoomIfNoVideo", script.text)
 
     def test_title_validation_and_ended_room_token_rejection(self):
         invalid = self.host_client.post(
