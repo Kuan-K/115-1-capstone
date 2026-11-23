@@ -11,6 +11,12 @@ const screenShareBtn = document.getElementById("screenShareBtn");
 const cameraBtn = document.getElementById("cameraBtn");
 const microphoneBtn = document.getElementById("microphoneBtn");
 const endStreamBtn = document.getElementById("endStreamBtn");
+const chatConnectionStatus = document.getElementById("chatConnectionStatus");
+const chatMessages = document.getElementById("chatMessages");
+const chatFeedback = document.getElementById("chatFeedback");
+const chatForm = document.getElementById("chatForm");
+const chatInput = document.getElementById("chatInput");
+const chatSendBtn = document.getElementById("chatSendBtn");
 
 let room = null;
 let roomDetails = null;
@@ -20,6 +26,11 @@ let screenShareEnabled = false;
 let roomConnected = false;
 let roomIsLive = false;
 let endingRoom = false;
+let chatSocket = null;
+let chatReconnectTimer = null;
+let chatReconnectAttempts = 0;
+let chatStopped = false;
+const chatMessageIds = new Set();
 
 async function requestJson(path, options = {}) {
     const response = await fetch(path, {
@@ -50,6 +61,188 @@ function setStatus(message, state) {
 function showMessage(message, isError = false) {
     streamMessage.textContent = message;
     streamMessage.classList.toggle("error", isError);
+}
+
+function setChatStatus(message, state) {
+    chatConnectionStatus.textContent = message;
+    chatConnectionStatus.dataset.state = state;
+}
+
+function showChatFeedback(message, isError = false) {
+    chatFeedback.textContent = message;
+    chatFeedback.classList.toggle("error", isError);
+}
+
+function setChatInputEnabled(enabled) {
+    chatInput.disabled = !enabled;
+    chatSendBtn.disabled = !enabled;
+}
+
+function renderChatMessage(message) {
+    const messageId = Number(message.id);
+    if (
+        !Number.isSafeInteger(messageId)
+        || chatMessageIds.has(messageId)
+        || typeof message.username !== "string"
+        || typeof message.content !== "string"
+    ) {
+        return;
+    }
+
+    chatMessageIds.add(messageId);
+
+    const item = document.createElement("li");
+    item.className = "chat-message";
+    item.dataset.messageId = String(messageId);
+
+    const header = document.createElement("div");
+    header.className = "chat-message-header";
+    const username = document.createElement("span");
+    username.className = "chat-message-username";
+    username.textContent = message.username;
+
+    const timestamp = document.createElement("time");
+    timestamp.className = "chat-message-time";
+    const createdAt = Number(message.created_at);
+    if (Number.isFinite(createdAt)) {
+        timestamp.dateTime = new Date(createdAt * 1000).toISOString();
+        timestamp.textContent = new Date(createdAt * 1000)
+            .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    header.append(username, timestamp);
+
+    const content = document.createElement("p");
+    content.className = "chat-message-content";
+    content.textContent = message.content;
+    item.append(header, content);
+
+    const nextMessage = [...chatMessages.children].find(
+        (existing) => Number(existing.dataset.messageId) > messageId
+    );
+    chatMessages.insertBefore(item, nextMessage || null);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function loadChatHistory() {
+    try {
+        const messages = await requestJson(
+            `/api/rooms/${roomId}/messages?limit=50`
+        );
+        messages.forEach(renderChatMessage);
+    } catch (error) {
+        showChatFeedback(error.message, true);
+    }
+}
+
+function stopChat(message) {
+    chatStopped = true;
+    clearTimeout(chatReconnectTimer);
+    chatReconnectTimer = null;
+    setChatInputEnabled(false);
+    setChatStatus(message, "ended");
+    if (chatSocket && chatSocket.readyState < WebSocket.CLOSING) {
+        chatSocket.close();
+    }
+    chatSocket = null;
+}
+
+function scheduleChatReconnect() {
+    if (chatStopped || !roomIsLive || chatReconnectTimer) {
+        return;
+    }
+
+    const delay = Math.min(1000 * (2 ** chatReconnectAttempts), 30000);
+    chatReconnectAttempts += 1;
+    setChatStatus("Connection lost. Reconnecting...", "reconnecting");
+    chatReconnectTimer = window.setTimeout(() => {
+        chatReconnectTimer = null;
+        connectChat();
+    }, delay);
+}
+
+function connectChat() {
+    if (!roomIsLive || chatStopped) {
+        return;
+    }
+    if (
+        chatSocket
+        && chatSocket.readyState <= WebSocket.OPEN
+    ) {
+        return;
+    }
+
+    const socketUrl = new URL(`/ws/streams/${roomId}`, window.location.href);
+    socketUrl.protocol = window.location.protocol === "https:"
+        ? "wss:"
+        : "ws:";
+    setChatStatus("Connecting to chat...", "connecting");
+
+    const socket = new WebSocket(socketUrl);
+    chatSocket = socket;
+    socket.addEventListener("open", () => {
+        if (chatSocket !== socket) {
+            return;
+        }
+        chatReconnectAttempts = 0;
+        setChatStatus("Connected", "connected");
+        setChatInputEnabled(true);
+        showChatFeedback("");
+        loadChatHistory();
+    });
+    socket.addEventListener("message", (event) => {
+        let payload;
+        try {
+            payload = JSON.parse(event.data);
+        } catch {
+            showChatFeedback("Received an invalid chat event.", true);
+            return;
+        }
+
+        if (payload.type === "chat.message") {
+            renderChatMessage(payload);
+        } else if (payload.type === "stream.ended") {
+            stopChat("This stream has ended.");
+        } else if (payload.type === "error") {
+            showChatFeedback(payload.message, true);
+        }
+    });
+    socket.addEventListener("close", (event) => {
+        if (chatSocket === socket) {
+            chatSocket = null;
+        }
+        setChatInputEnabled(false);
+        if (event.code === 4401) {
+            chatStopped = true;
+            clearTimeout(chatReconnectTimer);
+            setChatStatus("Session expired. Redirecting to login...", "ended");
+            window.location.replace("/login");
+            return;
+        }
+        if (event.code === 4409) {
+            stopChat("This stream has ended.");
+            return;
+        }
+        scheduleChatReconnect();
+    });
+}
+
+function sendChatMessage(event) {
+    event.preventDefault();
+    const content = chatInput.value.trim();
+    if (!content) {
+        return;
+    }
+    if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+        showChatFeedback("Chat is reconnecting. Please try again.", true);
+        return;
+    }
+
+    chatSocket.send(JSON.stringify({
+        type: "chat.send",
+        content
+    }));
+    chatInput.value = "";
+    showChatFeedback("");
 }
 
 function removeTrack(track) {
@@ -104,6 +297,8 @@ async function markRoomLive() {
     endStreamBtn.hidden = false;
     setStatus("Live", "live");
     showMessage("You are live. Share this room with your viewers.");
+    setChatStatus("Stream is live. Connecting to chat...", "connecting");
+    connectChat();
 }
 
 function updateVideoPlaceholder() {
@@ -179,12 +374,17 @@ async function loadRoom() {
     streamRole.textContent = roomDetails.role === "host"
         ? "YOU ARE THE HOST"
         : "LIVE STREAM";
+    roomIsLive = roomDetails.status === "live";
     connectBtn.textContent = roomDetails.role === "host"
         ? "Connect as host"
         : "Join stream";
     connectBtn.disabled = false;
+    await loadChatHistory();
 
-    if (roomDetails.role === "host") {
+    if (roomIsLive) {
+        connectChat();
+    } else if (roomDetails.role === "host") {
+        setChatStatus("Chat opens when the stream goes live.", "waiting");
         setStatus("Room ready", "ready");
     } else {
         setStatus("Live", "live");
@@ -192,6 +392,16 @@ async function loadRoom() {
 }
 
 async function connectToRoom() {
+    if (!window.LivekitClient) {
+        setStatus("SDK unavailable", "error");
+        showMessage(
+            "Unable to load LiveKit. Check your internet connection.",
+            true
+        );
+        connectBtn.disabled = true;
+        return;
+    }
+
     connectBtn.disabled = true;
     showMessage("");
 
@@ -357,6 +567,7 @@ async function endStream(message = "Your stream has ended.") {
         room = null;
         roomConnected = false;
         roomIsLive = false;
+        stopChat("This stream has ended.");
         setStatus("Ended", "ended");
         showMessage(message);
         connectBtn.hidden = true;
@@ -385,14 +596,25 @@ microphoneBtn.addEventListener("click", () => {
     toggleMicrophone().catch((error) => showMessage(error.message, true));
 });
 endStreamBtn.addEventListener("click", () => endStream());
+chatForm.addEventListener("submit", sendChatMessage);
+window.addEventListener("pagehide", () => {
+    chatStopped = true;
+    clearTimeout(chatReconnectTimer);
+    chatSocket?.close();
+});
 
-if (!window.LivekitClient) {
-    setStatus("SDK unavailable", "error");
-    showMessage("Unable to load LiveKit. Check your internet connection.", true);
-    connectBtn.disabled = true;
-} else {
-    loadRoom().catch((error) => {
+loadRoom()
+    .then(() => {
+        if (!window.LivekitClient) {
+            setStatus("SDK unavailable", "error");
+            showMessage(
+                "Unable to load LiveKit. Check your internet connection.",
+                true
+            );
+            connectBtn.disabled = true;
+        }
+    })
+    .catch((error) => {
         setStatus("Unable to open room", "error");
         showMessage(error.message, true);
     });
-}

@@ -252,6 +252,7 @@ class StreamRoomApiTests(unittest.TestCase):
         self.assertIn("setScreenShareEnabled(true, {", script.text)
         self.assertIn("audio: true", script.text)
         self.assertIn("LocalTrackUnpublished", script.text)
+        self.assertIn("removeTrackElements(participant, publication.source)", script.text)
         self.assertIn("element.muted = isLocal", script.text)
         self.assertNotIn("endRoomIfNoVideo", script.text)
 

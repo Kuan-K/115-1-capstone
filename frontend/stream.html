@@ -5,7 +5,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
     <title>Live Room | Capstone Live</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=3">
+    <link rel="stylesheet" href="/static/css/style.css?v=4">
 </head>
 <body>
 
@@ -28,38 +28,71 @@
            role="status">Checking room...</p>
     </section>
 
-    <section id="videoStage" class="stream-stage"
-             aria-label="Live video">
-        <p id="videoPlaceholder" class="stream-placeholder">
-            Connect to the room to start.
-        </p>
+    <section class="stream-room-layout" aria-label="Live stream and chat">
+        <div class="stream-video-column">
+            <section id="videoStage" class="stream-stage"
+                     aria-label="Live video">
+                <p id="videoPlaceholder" class="stream-placeholder">
+                    Connect to the room to start.
+                </p>
+            </section>
+
+            <p id="streamMessage"
+               class="stream-message"
+               role="status"
+               aria-live="polite"></p>
+
+            <div class="stream-controls">
+                <button id="connectBtn" class="btn btn-primary" type="button" disabled>
+                    Connect
+                </button>
+                <button id="screenShareBtn"
+                        class="btn btn-primary"
+                        type="button"
+                        hidden>
+                    Share screen
+                </button>
+                <button id="cameraBtn" class="btn btn-outline" type="button" hidden>
+                    Turn camera on
+                </button>
+                <button id="microphoneBtn" class="btn btn-outline" type="button" hidden>
+                    Enable microphone
+                </button>
+                <button id="endStreamBtn" class="btn btn-danger" type="button" hidden>
+                    End stream
+                </button>
+            </div>
+        </div>
+
+        <aside id="chatPanel" class="chat-panel" aria-labelledby="chatTitle">
+            <header class="chat-header">
+                <h2 id="chatTitle">Live Chat</h2>
+                <p id="chatConnectionStatus"
+                   class="chat-connection-status"
+                   data-state="waiting"
+                   role="status">Connecting to chat...</p>
+            </header>
+            <ol id="chatMessages"
+                class="chat-messages"
+                aria-live="polite"
+                aria-relevant="additions"></ol>
+            <p id="chatFeedback" class="chat-feedback" role="status"></p>
+            <form id="chatForm" class="chat-form">
+                <label class="visually-hidden" for="chatInput">Message</label>
+                <input id="chatInput"
+                       name="message"
+                       type="text"
+                       maxlength="500"
+                       autocomplete="off"
+                       placeholder="Write a message..."
+                       disabled>
+                <button id="chatSendBtn"
+                        class="btn btn-primary"
+                        type="submit"
+                        disabled>Send</button>
+            </form>
+        </aside>
     </section>
-
-    <p id="streamMessage"
-       class="stream-message"
-       role="status"
-       aria-live="polite"></p>
-
-    <div class="stream-controls">
-        <button id="connectBtn" class="btn btn-primary" type="button" disabled>
-            Connect
-        </button>
-        <button id="screenShareBtn"
-                class="btn btn-primary"
-                type="button"
-                hidden>
-            Share screen
-        </button>
-        <button id="cameraBtn" class="btn btn-outline" type="button" hidden>
-            Turn camera on
-        </button>
-        <button id="microphoneBtn" class="btn btn-outline" type="button" hidden>
-            Enable microphone
-        </button>
-        <button id="endStreamBtn" class="btn btn-danger" type="button" hidden>
-            End stream
-        </button>
-    </div>
 
     <a class="stream-back" href="/">Back to Capstone Live</a>
 </main>
